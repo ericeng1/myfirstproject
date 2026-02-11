@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Submission Form</title>
+</head>
+<body>
+
+<h2>Submission Form</h2>
+
+<form id="submissionForm">
+
+  <input type="text" id="first_name" placeholder="First Name" />
+  <input type="text" id="last_name" placeholder="Last Name" />
+  <input type="email" id="email" placeholder="Email" />
+  <input type="text" id="image_url" placeholder="Image URL" />
+
+  <textarea id="comment" placeholder="Comment"></textarea>
+
+  <button type="submit">Submit</button>
+</form>
+
+<p id="status"></p>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
