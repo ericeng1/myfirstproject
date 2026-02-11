@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Submission Search</title>
+  <style>
+    /* ====================== */
+    /* Global Styles */
+    /* ====================== */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 95%;
+      margin: 40px 0;
+    }
+
+    /* ====================== */
+    /* Search Bar */
+    /* ====================== */
+    .search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .search-bar input {
+      flex: 1;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+
+    .search-bar button {
+      padding: 12px 20px;
+      border-radius: 8px;
+      border: none;
+      background-color: #4f46e5;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .search-bar button:hover {
+      background-color: #4338ca;
+    }
+
+    /* ====================== */
+    /* Result Layout */
+    /* ====================== */
+    .result {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+      background-color: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    .result .metadata {
+      flex: 1 1 300px;
+    }
+
+    .result .metadata p {
+      margin: 8px 0;
+      font-size: 16px;
+      word-break: break-word;
+    }
+
+    .result .image-container {
+      flex: 1 1 300px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .result .image-container img {
+      max-width: 100%;
+      border-radius: 12px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    /* ====================== */
+    /* Status Message */
+    /* ====================== */
+    #status {
+      margin-top: 15px;
+      font-weight: 500;
+      text-align: center;
+      color: #333;
+    }
+
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Enter Submission ID or ID..." />
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <p id="status"></p>
+
+  <div id="resultContainer"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ===============================
+  // Supabase Client
+  // ===============================
+  const SUPABASE_URL = "https://onlshmndstcyqdxpimtv.supabase.co";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ubHNobW5kc3RjeXFkeHBpbXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0MjQxNzAsImV4cCI6MjA4NDAwMDE3MH0.IV9gNNZnEwBepC2G1aDai-Kbu2zSLz06UkMyoSfJR0w";
+
+  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ===============================
+  // Elements
+  // ===============================
+  const searchBtn = document.getElementById('searchBtn');
+  const searchInput = document.getElementById('searchInput');
+  const resultContainer = document.getElementById('resultContainer');
+  const status = document.getElementById('status');
+
+  // ===============================
+  // Search Function
+  // ===============================
+  async function searchSubmission() {
+    const query = searchInput.value.trim();
+
+    if (!query) {
+      status.textContent = "Please enter a Submission ID or ID.";
+      resultContainer.innerHTML = '';
+      return;
+    }
+
+    status.textContent = "Searching...";
+    resultContainer.innerHTML = '';
+
+    let filter = {};
+
+    // Determine if query is a number
+    if (!isNaN(query)) {
+      filter = { 
+        id: Number(query),
+        submission_id: Number(query)
+      };
+    }
+
+    // Query Supabase
+    const { data, error } = await supabaseClient
+      .from("submissions")
+      .select("*")
+      .or(`id.eq.${query},submission_id.eq.${query}`)
+      .limit(1);
+
+    if (error) {
+      console.error(error);
+      status.textContent = "Error fetching data.";
+      return;
+    }
+
+    if (data.length === 0) {
+      status.textContent = "No matching submission found.";
+      return;
+    }
+
+    status.textContent = "Result found:";
+
+    const row = data[0];
+
+    // ===============================
+    // Render Result
+    // ===============================
+    const resultHTML = document.createElement('div');
+    resultHTML.classList.add('result');
+
+    // Left: Metadata
+    const metadataDiv = document.createElement('div');
+    metadataDiv.classList.add('metadata');
+    metadataDiv.innerHTML = `
+      <p><strong>ID:</strong> ${row.id}</p>
+      <p><strong>Submission ID:</strong> ${row.submission_id}</p>
+      <p><strong>First Name:</strong> ${row.first_name || '-'}</p>
+      <p><strong>Last Name:</strong> ${row.last_name || '-'}</p>
+      <p><strong>Email:</strong> ${row.email || '-'}</p>
+      <p><strong>Comment:</strong> ${row.comment || '-'}</p>
+      <p><strong>Created At:</strong> ${row.created_at ? new Date(row.created_at).toLocaleString() : '-'}</p>
+    `;
+
+    // Right: Image
+    const imageDiv = document.createElement('div');
+    imageDiv.classList.add('image-container');
+
+    if (row.image_url) {
+      const img = document.createElement('img');
+      img.src = row.image_url;
+      img.alt = "Submission Image";
+      imageDiv.appendChild(img);
+    }
+
+    resultHTML.appendChild(metadataDiv);
+    resultHTML.appendChild(imageDiv);
+
+    resultContainer.appendChild(resultHTML);
+  }
+
+  // ===============================
+  // Event Listeners
+  // ===============================
+  searchBtn.addEventListener('click', searchSubmission);
+  searchInput.addEventListener('keyup', (e) => {
+    if (e.key === 'Enter') {
+      searchSubmission();
+    }
+  });
+
+</script>
+
+</body>
+</html>
